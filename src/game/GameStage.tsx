@@ -138,9 +138,9 @@ export function GameStage({ game }: { game: GameState }) {
         </div>
 
         {/* Chưa ai trong hàng, tường trống */}
-        {game.queue.length === 0 && game.splats.length === 0 && (
-          <div className="absolute inset-x-0 top-[720px] text-center">
-            <div className="inline-block -rotate-3 rounded-3xl bg-black/70 px-12 py-8 text-[60px] font-extrabold leading-tight text-white">
+        {game.queue.length === 0 && (
+          <div className="absolute inset-x-0 top-[1420px] pl-[500px] pr-[110px] text-center">
+            <div className="inline-block -rotate-3 rounded-3xl bg-black/70 px-8 py-5 text-[40px] font-extrabold leading-tight text-white">
               Comment 1 câu
               <br />
               <span className="text-lime-300">avatar bạn lên tường!</span>
@@ -349,6 +349,8 @@ function SplatView({
         <circle cx="172" cy="40" r="5" fill={s.color} />
         <circle cx="160" cy="176" r="4" fill={s.color} />
       </svg>
+      {s.name && (
+        <>
       <Avatar
         src={s.avatar}
         name={s.name}
@@ -382,6 +384,8 @@ function SplatView({
           </motion.div>
         )}
       </div>
+        </>
+      )}
     </motion.div>
   );
 }

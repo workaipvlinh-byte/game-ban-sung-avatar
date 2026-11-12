@@ -224,9 +224,10 @@ export function useGame() {
     const fast = boosting || queue.length > GAME.crowdAt;
     const t = setTimeout(
       () => {
-        const [who, rest] = takeNext(queueRef.current);
-        if (!who) return;
-        setQueue(rest);
+        const [taken, rest] = takeNext(queueRef.current);
+        // Không ai chờ: vẫn đi tiếp và bắn đại 1 vệt sơn trống lên tường cho màn hình không đứng im
+        const who = taken ?? { username: '', nickname: '', avatar: '', coins: 0, at: 0 };
+        if (taken) setQueue(rest);
         const wall = ++wallIdx.current;
         setShots(wall);
         // camera lướt sang tường mới trước, tới nơi mới bắn
@@ -259,7 +260,9 @@ export function useGame() {
           return [...s.filter((x) => x.x > (wall - 1) * TILE - x.size), splat];
         });
         const spoken = speakableName(who.nickname);
-        if (who.coins > 0) voice.say(pick(GAME.giftShotLines)!(spoken), true);
+        if (!taken) {
+          // bắn đại: không đọc gì
+        } else if (who.coins > 0) voice.say(pick(GAME.giftShotLines)!(spoken), true);
         // Mỗi phát đọc tên + "lên tường nè" (nói lúc bắt đầu lướt, giọng Adam cần ~1,5 giây tạo tiếng nên tới tường là vừa)
         else if (voice.waiting < 2) voice.say(pick(GAME.shotLines)!(spoken));
       },
