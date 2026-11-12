@@ -1,6 +1,6 @@
 # Bắn Sơn Lên Tường (game-ban-sung-avatar): ghi chú cho Claude
 
-> Luật chung: `E:> Luật chung: `E:_Projects\VibeCode\CLAUDE.md`.1_ProjectsVibeCodeCLAUDE.md`.
+> Luật chung: `E:\01_Projects\VibeCode\CLAUDE.md`.
 
 ## Ý tưởng
 
