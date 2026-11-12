@@ -16,12 +16,14 @@ export interface Prefs {
   music: '1' | '0';
   musicVol: string; // 0..200 (%)
   sfxVol: string; // 0..100 (%)
+  mc: string; // tên giọng VieNeu ('Adam bựa'), '' = giọng Edge
 }
-export const DEFAULT_PREFS: Prefs = { speed: 'vua', music: '1', musicVol: '100', sfxVol: '60' };
+export const DEFAULT_PREFS: Prefs = { speed: 'vua', music: '1', musicVol: '100', sfxVol: '60', mc: GAME.vieneuVoice };
 const SPEED = { cham: 1.6, vua: 1, nhanh: 0.6 };
 
 const pick = makePicker();
 voice.defaultWho = GAME.voice; // server gửi lại giọng đã chọn (setVoice) ngay khi trang nối vào
+voice.vieneu = GAME.vieneuVoice;
 
 // Bỏ dấu, thường hoá, bỏ khoảng trắng: "Tham Gia" -> "thamgia"
 const compact = (s: string) =>
@@ -36,20 +38,29 @@ export interface Splat {
   color: string;
   name: string;
   avatar: string;
-  coins: number; // > 0: người có quà, vệt to hơn + tem cảm ơn
+  coins: number; // > 0: người có quà, vệt to hơn + tem THANK YOU
+  size: number; // cạnh vệt sơn (px)
+  until: number; // người có quà: giữ trên tường tới lúc này, không bị vệt mới đẩy đi
 }
+
+const NORMAL_SIZE = 330;
+/** Vệt của người có quà còn được giữ không */
+export const isHeld = (s: Splat, now = Date.now()) => s.coins > 0 && now < s.until;
 
 // Vùng tường để bắn (khung 1080x1920): chừa thanh trên, cạnh phải cho TikTok, phần dưới là sàn + súng
 const WALL = { x0: 190, x1: 840, y0: 520, y1: 1100 };
 let splatId = 0;
 
 /** Chọn chỗ bắn: thử 10 điểm ngẫu nhiên, lấy điểm xa các vệt mới nhất nhất. */
-function pickSpot(splats: Splat[]) {
+function pickSpot(splats: Splat[], size: number) {
   const recent = splats.slice(-5);
+  // vệt to thì thu vùng bắn vào giữa cho khỏi tràn khung
+  const pad = Math.max(0, size - NORMAL_SIZE) / 2;
+  const W = { x0: WALL.x0 + pad, x1: Math.max(WALL.x0 + pad, WALL.x1 - pad), y0: WALL.y0 + pad * 0.5, y1: Math.max(WALL.y0 + pad * 0.5, WALL.y1 - pad) };
   let best = { x: 540, y: 800 };
   let bestD = -1;
   for (let i = 0; i < 10; i++) {
-    const p = { x: WALL.x0 + Math.random() * (WALL.x1 - WALL.x0), y: WALL.y0 + Math.random() * (WALL.y1 - WALL.y0) };
+    const p = { x: W.x0 + Math.random() * (W.x1 - W.x0), y: W.y0 + Math.random() * (W.y1 - W.y0) };
     const d = Math.min(...recent.map((s) => Math.hypot(s.x - p.x, s.y - p.y)), 9999);
     if (d > bestD) [best, bestD] = [p, d];
   }
@@ -73,6 +84,8 @@ export function useGame() {
   const likeBase = useRef<number | null>(null);
   const queueRef = useRef(queue);
   queueRef.current = queue;
+  const pauseMs = useRef(0); // thêm thời gian chờ sau phát bắn người có quà
+  const lastQueueLine = useRef(0);
 
   const [channelName, setChannelName] = useState(GAME.defaultChannelName);
   const kenh = useRef(channelName);
@@ -107,7 +120,14 @@ export function useGame() {
       // Comment bậy thì không cho lên tường lần này
       if (containsBanned(e.comment)) return;
       if (GAME.joinKeywords.length && !GAME.joinKeywords.some((k) => compact(e.comment).includes(k))) return;
+      const isNew = !queueRef.current.some((x) => x.username === e.username);
       setQueue((q) => enqueue(q, { ...e, nickname: name }, 0, GAME.maxQueue));
+      // Gọi tên người mới vào hàng, thưa thôi, chỉ khi MC đang rảnh
+      const spoken = speakableName(name);
+      if (isNew && spoken !== 'bạn' && voice.waiting === 0 && Date.now() - lastQueueLine.current > GAME.queueLineEveryMs) {
+        lastQueueLine.current = Date.now();
+        voice.say(GAME.queueLine(spoken, queueRef.current.length));
+      }
     },
 
     onGift: (e) => {
@@ -156,6 +176,7 @@ export function useGame() {
           music.on = p.music === '1';
           music.level = Number(p.musicVol) / 100 || 0;
           sfx.volume = Number(p.sfxVol) / 100 || 0;
+          voice.vieneu = p.mc;
         } catch {
           // sai dạng: giữ cài đặt cũ
         }
@@ -202,8 +223,11 @@ export function useGame() {
         setShots((n) => n + 1);
         sfx.play('ban');
         setTimeout(() => sfx.play('splat'), 230);
+        if (who.coins > 0) setTimeout(() => sfx.play('splat'), 780); // sticker THANK YOU dính lên
+        const size = who.coins > 0 ? GAME.giftSize(who.coins) : NORMAL_SIZE;
+        pauseMs.current = who.coins > 0 ? GAME.giftPauseMs(who.coins) : 0;
         setSplats((s) => {
-          const spot = pickSpot(s);
+          const spot = pickSpot(s, size);
           const splat: Splat = {
             id: ++splatId,
             ...spot,
@@ -213,14 +237,23 @@ export function useGame() {
             name: who.nickname,
             avatar: who.avatar,
             coins: who.coins,
+            size,
+            until: Date.now() + (who.coins > 0 ? GAME.giftHoldMs(who.coins) : 0),
           };
-          return [...s.slice(-(GAME.maxSplats - 1)), splat];
+          // Quá trần thì bỏ vệt cũ nhất, trừ vệt người có quà còn đang được giữ
+          const next = [...s, splat];
+          while (next.length > GAME.maxSplats) {
+            const i = next.findIndex((x) => !isHeld(x));
+            if (i < 0 || i === next.length - 1) break;
+            next.splice(i, 1);
+          }
+          return next;
         });
         const spoken = speakableName(who.nickname);
-        if (who.coins > 0) voice.say(GAME.giftShotLine(spoken), true);
-        else if (voice.waiting === 0 && spoken !== 'bạn') voice.say(GAME.shotLine(spoken));
+        if (who.coins > 0) voice.say(pick(GAME.giftShotLines)!(spoken), true);
+        else if (voice.waiting === 0 && spoken !== 'bạn') voice.say(pick(GAME.shotLines)!(spoken));
       },
-      (fast ? GAME.fastShotEveryMs : GAME.shotEveryMs) * SPEED[prefs.speed],
+      (fast ? GAME.fastShotEveryMs : GAME.shotEveryMs) * SPEED[prefs.speed] + pauseMs.current,
     );
     return () => clearTimeout(t);
   }, [shots, queue.length > 0, boosting, queue.length > GAME.crowdAt, prefs.speed]);

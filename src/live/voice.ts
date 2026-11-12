@@ -110,7 +110,11 @@ class Voice {
     return out;
   }
 
+  /** Tên giọng VieNeu (vd 'Adam bựa'); rỗng = dùng Edge. Câu ép giọng nữ (F:) vẫn đọc Edge HoaiMy. VieNeu lỗi thì server tự đọc Edge. */
+  vieneu = '';
+
   private urlOf(p: Part) {
+    if (this.vieneu && p.who !== 'F') return `/api/tts?eng=vn&voice=${encodeURIComponent(this.vieneu)}&text=${encodeURIComponent(p.text)}`;
     return `/api/tts?rate=${this.rate}${p.hype ? '&hype=1' : ''}${p.who === 'F' ? '&v=f' : ''}&text=${encodeURIComponent(p.text)}`;
   }
 

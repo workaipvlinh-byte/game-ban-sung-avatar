@@ -33,6 +33,18 @@ export function GameControls({ prefs }: { prefs: Prefs }) {
         <Slider label="Nhạc" max={200} value={prefs.musicVol} onChange={(v) => setPref({ musicVol: v })} />
         <Slider label="Tiếng súng" max={100} value={prefs.sfxVol} onChange={(v) => setPref({ sfxVol: v })} />
       </Row>
+      <Row label="Giọng MC">
+        <B on={prefs.mc === 'Adam bựa'} onClick={() => setPref({ mc: 'Adam bựa' })}>
+          🤪 Adam bựa
+        </B>
+        <B on={!prefs.mc} onClick={() => setPref({ mc: '' })}>
+          🎙 Giọng thường (Edge)
+        </B>
+        <B onClick={() => void sendControl('speak', '[cười] Ai comment là lên tường hết nha! | Tặng quà thì được bắn trước, avatar to đùng luôn.')}>
+          ▶ Nghe thử trên stage
+        </B>
+        <span className="text-xs text-slate-500">Adam cần bật VieNeu-TTS (BAT-LIVE tự bật). Chưa bật thì tự đọc giọng thường.</span>
+      </Row>
       <Row label="Người xem">
         <input
           value={hide}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import type { GameState, Splat } from './useGame';
+import { isHeld, type GameState, type Splat } from './useGame';
 import { GAME } from './config';
 
 // Ảnh chủ kênh làm, bỏ vào public/assets/anh/. Chưa có thì dùng hình vẽ tạm.
@@ -19,7 +19,7 @@ export function GameStage({ game }: { game: GameState }) {
 
       {/* Vệt sơn trên tường */}
       {game.splats.map((s, i) => (
-        <SplatView key={s.id} s={s} fresh={s === last} faded={i < game.splats.length - 6} />
+        <SplatView key={s.id} s={s} fresh={s === last} faded={i < game.splats.length - 6 && !isHeld(s)} />
       ))}
 
       {/* Viên sơn bay từ nòng tới tường */}
@@ -134,11 +134,12 @@ const SPLAT_PATHS = [
 ];
 
 function SplatView({ s, fresh, faded }: { s: Splat; fresh: boolean; faded: boolean }) {
-  const size = s.coins > 0 ? 440 : 330;
+  const { size } = s;
+  const font = Math.round(size / 11); // chữ to theo vệt
   return (
     <motion.div
       className="absolute"
-      style={{ left: s.x - size / 2, top: s.y - size / 2, width: size, height: size, zIndex: s.coins > 0 ? 2 : 1 }}
+      style={{ left: s.x - size / 2, top: s.y - size / 2, width: size, height: size, zIndex: s.coins > 0 ? 2 + Math.round(size / 100) : 1 }}
       initial={fresh ? { scale: 0, opacity: 0 } : false}
       animate={{ scale: 1, opacity: faded ? 0.35 : 1 }}
       transition={fresh ? { delay: 0.22, type: 'spring', stiffness: 420, damping: 14 } : { duration: 0.6 }}
@@ -152,16 +153,28 @@ function SplatView({ s, fresh, faded }: { s: Splat; fresh: boolean; faded: boole
       <Avatar
         src={s.avatar}
         name={s.name}
-        className="absolute left-1/2 top-1/2 h-[56%] w-[56%] -translate-x-1/2 -translate-y-1/2 border-[6px] border-black/30"
+        className={`absolute left-1/2 top-1/2 h-[56%] w-[56%] -translate-x-1/2 -translate-y-1/2 border-[6px] ${s.coins > 0 ? 'border-amber-300' : 'border-black/30'}`}
       />
-      <div className="absolute left-1/2 top-[76%] max-w-[120%] -translate-x-1/2 -rotate-3 truncate rounded-lg bg-black px-4 py-1 text-[30px] font-extrabold text-white">
-        {s.name}
-      </div>
-      {s.coins > 0 && (
-        <div className="absolute -left-[18%] top-[30%] -rotate-12 rounded-xl border-4 border-emerald-200 bg-emerald-600 px-4 py-1 text-[40px] font-black tracking-wide text-white shadow-lg">
-          CẢM ƠN!
+      {/* Sticker tên, người có quà có thêm sticker THANK YOU bắn dính bên cạnh */}
+      <div className="absolute left-1/2 top-[76%] flex -translate-x-1/2 items-center gap-2 whitespace-nowrap">
+        <div
+          className="max-w-[300px] -rotate-3 truncate rounded-lg bg-black px-4 py-1 font-extrabold text-white"
+          style={{ fontSize: Math.max(30, font * 0.9) }}
+        >
+          {s.name}
         </div>
-      )}
+        {s.coins > 0 && (
+          <motion.div
+            className="rotate-[8deg] rounded-xl border-4 border-emerald-100 bg-emerald-500 px-3 py-0.5 font-black tracking-wide text-white shadow-lg"
+            style={{ fontSize: Math.max(32, font * 0.85) }}
+            initial={fresh ? { scale: 2.6, opacity: 0 } : false}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: fresh ? 0.75 : 0, type: 'spring', stiffness: 500, damping: 16 }}
+          >
+            THANK YOU
+          </motion.div>
+        )}
+      </div>
     </motion.div>
   );
 }

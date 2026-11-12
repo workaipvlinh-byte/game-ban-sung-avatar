@@ -18,14 +18,36 @@ export const GAME = {
   maxSplats: 9, // số vệt sơn giữ trên tường, quá thì vệt cũ mờ đi
   splatColors: ['#7CFC3A', '#21D07A', '#2EE6D6', '#FF3FB4', '#FFB020', '#A66BFF'],
   // Câu MC lúc bắn (người thường chỉ đọc khi giọng đang rảnh, người có quà luôn đọc)
-  shotLine: (name: string) => `Bắn bạn ${name} lên tường nè!`,
-  giftShotLine: (name: string) => `^Tới lượt bạn ${name}! | Bắn!`,
+  // [cười] [hắng giọng] chỉ giọng Adam đọc ra cảm xúc, giọng Edge tự bỏ qua
+  shotLines: [
+    (n: string) => `Bạn ${n} lên tường nè!`,
+    (n: string) => `[cười] Bắn bạn ${n} cái bẹp!`,
+    (n: string) => `Tới bạn ${n}, đứng yên nha. Bắn!`,
+    (n: string) => `Bạn ${n} dính sơn rồi, hết đường chạy.`,
+    (n: string) => `Ê bạn ${n}, nhìn lên tường coi ai kìa.`,
+  ],
+  giftShotLines: [
+    (n: string) => `^Tới lượt bạn ${n}! | Bắn phát to nhất luôn!`,
+    (n: string) => `[cười] Đại gia ${n} lên tường! | Thank you bạn nha!`,
+    (n: string) => `^Dọn đường cho bạn ${n}! | Bắn!`,
+  ],
+  // Người mới vào hàng: thỉnh thoảng gọi tên cho họ biết đã được xếp (giọng đang rảnh mới đọc)
+  queueLineEveryMs: 15_000,
+  queueLine: (n: string, pos: number) =>
+    pos <= 1 ? `Bạn ${n} vào hàng rồi, chuẩn bị lên tường nha.` : `Bạn ${n} vào hàng rồi, còn ${pos} người nữa là tới.`,
+  // Quà: xu càng nhiều avatar càng to (px) và giữ trên tường càng lâu
+  giftSize: (coins: number) => Math.min(700, 380 + 75 * Math.log10(Math.max(1, coins))),
+  giftHoldMs: (coins: number) => Math.min(90_000, 20_000 + 15_000 * Math.log10(Math.max(1, coins))),
+  // Bắn người có quà xong thì dừng thêm chút cho cả phòng kịp nhìn
+  giftPauseMs: (coins: number) => Math.min(5000, 1000 + 1000 * Math.log10(Math.max(1, coins))),
 
   // Tên kênh mặc định, tới khi chủ kênh lưu tên ở trang điều khiển
   defaultChannelName: 'kênh mình',
 
   // Giọng MC mặc định khi chưa chọn ở trang điều khiển: 'M' = nam NamMinh, 'F' = nữ HoaiMy
   voice: 'M' as 'M' | 'F',
+  // Giọng MC mặc định: 'Adam bựa' (VieNeu, cần bật VieNeu-TTS) hoặc '' = giọng Edge. Chọn lại ở trang điều khiển.
+  vieneuVoice: 'Adam bựa',
 
   // Từ khóa trong comment để tham gia (so sánh không dấu, không hoa thường)
   joinKeywords: [] as string[], // trống = comment gì cũng vào hàng
@@ -49,7 +71,7 @@ export const GAME = {
   // Cùng 1 người tặng liên tục / combo: chỉ cảm ơn 1 lần mỗi 30 giây. Quà từ 99 xu luôn được cảm ơn.
   giftThanksCooldownMs: 30_000,
   bigGiftCoins: 99,
-  thankGift: (name: string, gift: string, kenh: string) => `${kenh} cảm ơn bạn ${name} đã tặng ${gift}.`,
+  thankGift: (name: string, gift: string, kenh: string) => `[cười] ${kenh} cảm ơn bạn ${name} tặng ${gift} nha! | Bạn được lên tường trước luôn.`,
   // Đọc thêm 1 câu chúc ngẫu nhiên sau lời cảm ơn quà ([] = không đọc)
   giftWishes: [
     'Chúc bạn một ngày thật vui.',
