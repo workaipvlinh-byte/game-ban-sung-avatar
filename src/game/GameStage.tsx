@@ -5,7 +5,7 @@ import { GAME } from "./config";
 
 // Ảnh chủ kênh làm, bỏ vào public/assets/anh/. Chưa có thì dùng hình vẽ tạm.
 const IMG = { wall: "/assets/anh/tuong.jpg", gun: "/assets/anh/sung.png" };
-const MUZZLE = { x: 568, y: 1013 }; // miệng nòng súng trong khung 1080x1920 (đo từ ảnh sung.png)
+const MUZZLE = { x: 571, y: 1007 }; // miệng nòng súng trong khung 1080x1920 (đo từ ảnh sung.png)
 
 import { TILE, WALK, toWall } from "./walk";
 
