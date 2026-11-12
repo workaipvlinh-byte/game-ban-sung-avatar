@@ -20,8 +20,33 @@ Màn hình dọc 1080×1920, chạy trên web, đưa lên live bằng nguồn Li
 
 ## MC
 
-- Mặc định giọng **Adam bựa** (VieNeu-TTS), có cười, có hô. Cần cài VieNeu-TTS chạy ở cổng 8000; `BAT-LIVE.bat` tự bật nếu có ở `E:\02_AI\VieNeu-TTS`. Chưa có thì game tự đọc giọng Nam Minh của Edge, live không bị im.
+- Mặc định giọng **Adam bựa** (VieNeu-TTS), có cười, có hô. Chưa cài VieNeu thì game tự đọc giọng Nam Minh của Edge, live không bị im.
 - MC ít nói: mỗi lần bắn đọc tên + "lên tường nè", cảm ơn quà, cảm ơn chung khi comment đông (tối đa 1 lần mỗi 1,5 phút). Không chào từng người vào phòng, không bao giờ đọc nguyên văn comment.
+- Trang điều khiển có mục "Giọng MC": chọn Adam bựa hoặc giọng thường (Edge), nút nghe thử trên stage.
+
+### Cài giọng Adam bựa
+
+Adam bựa là một giọng có sẵn của [VieNeu-TTS](https://github.com/pnnbao97/VieNeu-TTS), phần mềm đọc tiếng Việt chạy ngay trên máy (không mất tiền, không cần mạng khi đọc). Game gọi VieNeu qua địa chỉ `http://127.0.0.1:8000`.
+
+1. Cài `uv` (trình cài Python). Mở PowerShell, chạy:
+   ```
+   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+   ```
+2. Tải VieNeu về đúng thư mục `E:\02_AI\VieNeu-TTS` (để `BAT-LIVE.bat` tự tìm thấy):
+   ```
+   git clone https://github.com/pnnbao97/VieNeu-TTS.git E:\02_AI\VieNeu-TTS
+   cd E:\02_AI\VieNeu-TTS
+   ```
+3. Cài thư viện, chọn 1 trong 2:
+   - Máy có card NVIDIA (đọc nhanh hơn nhiều): `uv sync --extra cuda`
+   - Không có card rời: `uv sync`
+4. Chạy thử một lần: `uv run python -m apps.openai_speech`. Lần đầu nó tải model, chờ tới khi thấy dòng `Uvicorn running on http://127.0.0.1:8000` là xong. Mở `http://127.0.0.1:8000/v1/voices` thấy có "Adam bựa" là được, rồi tắt cửa sổ đó.
+
+Từ giờ bấm `BAT-LIVE.bat` là nó tự mở VieNeu trong một cửa sổ riêng nếu chưa chạy. Đừng tắt cửa sổ đó khi đang live.
+
+- Để VieNeu ở thư mục khác: tự bật VieNeu (bước 4) trước khi bấm `BAT-LIVE.bat`. VieNeu chạy ở máy hoặc cổng khác thì đặt `VIENEU_URL=http://địa-chỉ:cổng` trong file `.env`.
+- Trong câu MC (`src/game/config.ts`) viết được `[cười]`, `[thở dài]`, `[hắng giọng]`, Adam sẽ cười, thở dài, hắng giọng thật. Giọng Edge tự bỏ mấy thẻ này.
+- Máy không có card rời vẫn chạy được nhưng mỗi câu chậm hơn. Trên máy làm game, mỗi câu mất khoảng 1,5 giây.
 
 ## Chạy
 
