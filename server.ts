@@ -197,7 +197,14 @@ app.post('/api/tiktok/connect', async (req, res) => {
     enableExtendedGiftInfo: false,
     // Mạng chặn truy cập ẩn danh (lỗi 401) thì cần key miễn phí của eulerstream.com, ghi vào file .env: EULER_API_KEY=...
     signApiKey: process.env.EULER_API_KEY || undefined,
-  });
+    // Lỗi DEVICE_BLOCKED: TikTok chặn kết nối ẩn danh từ mạng này -> đăng nhập bằng cookie của 1 nick phụ (ghi trong .env)
+    ...(process.env.TIKTOK_SESSION_ID && process.env.TIKTOK_TT_TARGET_IDC
+      ? {
+          session: { cookie: { type: 'cookie' as const, value: { sessionId: process.env.TIKTOK_SESSION_ID, ttTargetIdc: process.env.TIKTOK_TT_TARGET_IDC } } },
+          authenticateWs: true as const,
+        }
+      : {}),
+  } as ConstructorParameters<typeof TikTokLiveConnection>[1]);
 
   conn.on(ControlEvent.CONNECTED, (state: { roomId?: string }) => {
     console.log(`[TikTok] Đã kết nối @${cleanUser}, room ${state?.roomId}`);
