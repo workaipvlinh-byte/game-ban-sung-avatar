@@ -1,18 +1,18 @@
-# {TÊN GAME}: ghi chú cho Claude
+# Bắn Sơn Lên Tường (game-ban-sung-avatar): ghi chú cho Claude
 
-> File này mô tả RIÊNG game này. Luật chung cho mọi game nằm ở `E:\VibeCode\CLAUDE.md` (Claude tự đọc cả hai).
-> Khi chủ kênh chốt một quyết định (câu đọc, màu, font, luật chơi), ghi vào mục "Quyết định của chủ kênh".
+> Luật chung: `E:_Projects\VibeCode\CLAUDE.md`.
 
 ## Ý tưởng
 
-{Mô tả game trong 2–3 câu: người xem làm gì, quà làm gì, tim làm gì.}
+Súng sơn đồ chơi bắn avatar người xem lên tường gạch. Ai comment thì vào hàng chờ, cứ vài giây bắn 1 người, avatar dính giữa vệt sơn kèm tên.
 
 ## Luật chơi
 
-- Tham gia: gõ {từ khóa}
-- Comment: {…}
-- Quà: {…}
-- Tim: đủ {số} tim thì {…}
+- Comment bất kỳ (không bậy) = vào cuối hàng. Đang chờ thì comment thêm không đổi gì. Bị bắn xong muốn lên lại thì comment tiếp.
+- Quà: cộng xu vào chỗ trong hàng, xu cao bắn trước, bằng xu thì ai vào trước bắn trước. Vệt to hơn + tem "CẢM ƠN!", MC gọi tên.
+- Tim: đầy thanh 500 tim = "mưa sơn", bắn nhanh 30 giây.
+- Hàng đông (>30 người) tự bắn nhanh hơn. Tường giữ 9 vệt, vệt cũ mờ đi.
+- Logic hàng chờ: `src/game/queue.ts`, tự kiểm: `npx tsx src/game/queue.check.ts`.
 
 ## File của game này
 
@@ -40,5 +40,8 @@
 
 ## Quyết định của chủ kênh
 
-- {ví dụ: Font Lora. Nền public/assets/bg/xxx.webp.}
-- {ví dụ: Câu chào: "..." giữ nguyên chữ.}
+- 2026-11-12: Quà được ưu tiên theo xu (game làm cho khách). Chủ kênh chọn bỏ luật "không xử lý quà" của skill tiktok-live-game cho game này.
+- Súng kiểu súng sơn đồ chơi (pastel), không làm súng thật.
+- Cổng 3012.
+- Ảnh: `public/assets/anh/tuong.jpg` (nền), `sung.png` (đã tách nền đen). Gốc trong `tai-nguyen/`.
+- Nhạc nền: `public/assets/nhac/nhac-nen.mp3` (chưa có thì nhạc DJ tự tạo). Tiếng: `public/assets/sfx/ban|splat|qua|muason.mp3` (chưa có thì tiếng tự tạo).
