@@ -9,6 +9,8 @@ const MUZZLE = { x: 542, y: 1010 }; // đầu nòng súng trong khung 1080x1920
 
 import { TILE, WALK, toWall } from "./walk";
 
+const GUN_TOP = 1920 - 944; // mép trên khung súng
+const ball = (c: string) => `radial-gradient(circle at 35% 30%, #fff 0 12%, ${c} 40%, color-mix(in srgb, ${c} 60%, #000) 100%)`;
 const GO = WALK.moveMs / 1000; // giây lướt sang tường mới, viên sơn bay sau khi tới nơi
 const ease = (p: number) => (p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2);
 
@@ -151,6 +153,25 @@ export function GameStage({ game }: { game: GameState }) {
             src={IMG.gun}
             className="h-full w-full object-contain object-left-bottom"
             fallback={<GunFallback />}
+          />
+          {/* Viên sơn nạp sẵn ở đầu nòng: bắn đi (sau khi tới tường) rồi nạp viên mới ngay */}
+          {last && (
+            <motion.div
+              key={`a${game.shots}`}
+              className="absolute h-14 w-14 rounded-full"
+              style={{ left: MUZZLE.x - 28, top: MUZZLE.y - GUN_TOP - 28, background: ball(last.color) }}
+              initial={false}
+              animate={{ scale: [1, 1, 0] }}
+              transition={{ duration: 0.05, delay: GO }}
+            />
+          )}
+          <motion.div
+            key={`b${game.shots}`}
+            className="absolute h-14 w-14 rounded-full"
+            style={{ left: MUZZLE.x - 28, top: MUZZLE.y - GUN_TOP - 28, background: ball(game.ammoColor) }}
+            initial={{ scale: last ? 0 : 1 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 600, damping: 15, delay: last ? GO + 0.15 : 0 }}
           />
         </motion.div>
       </div>

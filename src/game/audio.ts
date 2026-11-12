@@ -132,7 +132,7 @@ class Music {
     setInterval(tryPlay, 2000); // trình duyệt chặn tự phát thì thử lại
     window.addEventListener('pointerdown', tryPlay);
     setInterval(() => {
-      const target = this.on && voice.enabled ? Math.min(1, (voice.busy ? 0.18 : 0.45) * this.level) : 0;
+      const target = this.on && voice.enabled ? Math.min(1, (voice.busy ? 0.15 : 0.32) * this.level) : 0;
       el.volume = Math.max(0, Math.min(1, el.volume + (target - el.volume) * 0.3));
       if (!this.on && el.volume < 0.01) el.pause();
     }, 100);
@@ -142,7 +142,7 @@ class Music {
 export type SfxName = 'ban' | 'splat' | 'qua' | 'muason';
 
 class Sfx {
-  volume = 0.5; // 0..1
+  volume = 0.8; // 0..1
   private ctx: AudioContext | null = null;
   private files: Partial<Record<SfxName, HTMLAudioElement>> = {};
 
@@ -210,18 +210,19 @@ const SYNTH: Record<SfxName, (ctx: AudioContext, v: number) => void> = {
   ban: (c, v) => {
     // súng sơn: "tách" cò + "phụp" hơi nén bật bi sơn + "xì" xả hơi
     const t = c.currentTime;
-    hiss(c, t, 0.02, 0.6 * v, 'highpass', 4000); // tách
-    tone(c, 'sine', 210, 70, t + 0.005, 0.09, 0.7 * v); // phụp (thân)
-    hiss(c, t + 0.005, 0.07, 0.9 * v, 'bandpass', 900); // phụp (hơi)
-    hiss(c, t + 0.04, 0.32, 0.22 * v, 'highpass', 2500); // xì
+    hiss(c, t, 0.02, 0.5 * v, 'highpass', 4000); // tách
+    tone(c, 'sine', 180, 55, t + 0.005, 0.16, 1.4 * v); // BỤP: tiếng trầm, to, dứt khoát
+    hiss(c, t + 0.005, 0.09, 1.2 * v, 'bandpass', 700); // hơi nén bật ra
+    hiss(c, t + 0.05, 0.3, 0.2 * v, 'highpass', 2500); // xì
   },
   // sơn văng lên tường: "bẹp" ướt
   splat: (c, v) => {
     const t = c.currentTime;
     // bi sơn vỡ trên tường: "bộp" + nước văng
-    tone(c, 'sine', 140, 45, t, 0.12, 0.6 * v);
-    hiss(c, t, 0.06, 0.8 * v, 'bandpass', 1400);
-    hiss(c, t + 0.03, 0.22, 0.35 * v, 'lowpass', 2200);
+    // to rõ hơn nhạc nền
+    tone(c, 'sine', 150, 40, t, 0.2, 1.6 * v);
+    hiss(c, t, 0.08, 1.5 * v, 'bandpass', 1300);
+    hiss(c, t + 0.03, 0.3, 0.7 * v, 'lowpass', 2400);
   },
   // quà tới: 3 nốt đi lên
   qua: (c, v) => {

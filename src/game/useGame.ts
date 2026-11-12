@@ -49,7 +49,9 @@ const NORMAL_SIZE = 330;
 export const isHeld = (s: Splat, now = Date.now()) => s.coins > 0 && now < s.until;
 
 // Vùng tường để bắn (khung 1080x1920): chừa thanh trên, cạnh phải cho TikTok, phần dưới là sàn + súng
-const WALL = { x0: 190, x1: 840, y0: 520, y1: 1100 };
+const WALL = { x0: 190, x1: 840, y0: 480, y1: 1100 };
+// Vùng súng che (bên trái dưới), avatar + tên không được chạm vào
+const GUN = { x1: 640, y0: 900 };
 let splatId = 0;
 
 /** Chọn chỗ bắn trên bức tường thứ `wall` (mỗi người 1 tường) */
@@ -58,7 +60,15 @@ function pickSpot(size: number, wall: number) {
   const pad = size > NORMAL_SIZE ? (size - NORMAL_SIZE) / 2 + 90 : 0; // +90: chừa chỗ sticker tên + THANK YOU
   const x0 = WALL.x0 + pad, x1 = Math.max(x0, WALL.x1 - pad);
   const y0 = WALL.y0 + pad * 0.5, y1 = Math.max(y0, WALL.y1 - pad);
-  return toWall(x0 + Math.random() * (x1 - x0), y0 + Math.random() * (y1 - y0), wall);
+  // Thử ngẫu nhiên tới khi avatar + sticker tên nằm ngoài vùng súng (tính cả phóng to 1.1)
+  for (let i = 0; i < 30; i++) {
+    const x = x0 + Math.random() * (x1 - x0);
+    const y = y0 + Math.random() * (y1 - y0);
+    const half = (size * 1.1) / 2;
+    const clearsGun = x - half > GUN.x1 || y + half + 70 < GUN.y0;
+    if (clearsGun) return toWall(x, y, wall);
+  }
+  return toWall(x1, y0, wall); // không tìm được: góc trên phải, xa súng nhất
 }
 
 /**
@@ -69,6 +79,9 @@ export function useGame() {
   const [status, setStatus] = useState<LiveStatus | null>(null);
   const [queue, setQueue] = useState<Queue>([]);
   const [splats, setSplats] = useState<Splat[]>([]);
+  // Viên sơn đang nạp ở đầu nòng (màu của phát kế tiếp)
+  const nextColor = useRef(GAME.splatColors[0]);
+  const [ammoColor, setAmmoColor] = useState(nextColor.current);
   const [shots, setShots] = useState(0); // tổng số phát đã bắn
   const [lastGift, setLastGift] = useState<GiftEvent | null>(null);
   const [likeProgress, setLikeProgress] = useState(0); // 0..likesPerBoost
@@ -224,6 +237,11 @@ export function useGame() {
         setTimeout(() => sfx.play('splat'), go + 230);
         if (who.coins > 0) setTimeout(() => sfx.play('splat'), go + 780); // sticker THANK YOU dính lên
         const size = who.coins > 0 ? GAME.giftSize(who.coins) : NORMAL_SIZE;
+        // bắn viên đang nạp, nạp viên màu khác cho phát sau
+        const shotColor = nextColor.current;
+        do nextColor.current = pick(GAME.splatColors) ?? shotColor;
+        while (nextColor.current === shotColor && GAME.splatColors.length > 1);
+        setAmmoColor(nextColor.current);
         pauseMs.current = who.coins > 0 ? GAME.giftPauseMs(who.coins) : 0;
         setSplats((s) => {
           const spot = pickSpot(size, wall);
@@ -232,7 +250,7 @@ export function useGame() {
             ...spot,
             rot: Math.random() * 50 - 25,
             shape: Math.floor(Math.random() * 3),
-            color: pick(GAME.splatColors) ?? '#7CFC3A',
+            color: shotColor,
             name: who.nickname,
             avatar: who.avatar,
             coins: who.coins,
@@ -302,6 +320,7 @@ export function useGame() {
     lastGift,
     likeProgress,
     boosting,
+    ammoColor,
   };
 }
 
