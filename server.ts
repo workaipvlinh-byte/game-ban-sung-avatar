@@ -195,6 +195,8 @@ app.post('/api/tiktok/connect', async (req, res) => {
     processInitialData: true,
     // Lấy danh sách quà cần gói trả phí Euler Stream; sự kiện quà đã có tên và kim cương
     enableExtendedGiftInfo: false,
+    // Mạng chặn truy cập ẩn danh (lỗi 401) thì cần key miễn phí của eulerstream.com, ghi vào file .env: EULER_API_KEY=...
+    signApiKey: process.env.EULER_API_KEY || undefined,
   });
 
   conn.on(ControlEvent.CONNECTED, (state: { roomId?: string }) => {
