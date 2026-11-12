@@ -55,7 +55,7 @@ let splatId = 0;
 function pickSpot(splats: Splat[], size: number) {
   const recent = splats.slice(-5);
   // vệt to thì thu vùng bắn vào giữa cho khỏi tràn khung
-  const pad = Math.max(0, size - NORMAL_SIZE) / 2;
+  const pad = size > NORMAL_SIZE ? (size - NORMAL_SIZE) / 2 + 90 : 0; // +90: chừa chỗ sticker tên + THANK YOU
   const W = { x0: WALL.x0 + pad, x1: Math.max(WALL.x0 + pad, WALL.x1 - pad), y0: WALL.y0 + pad * 0.5, y1: Math.max(WALL.y0 + pad * 0.5, WALL.y1 - pad) };
   let best = { x: 540, y: 800 };
   let bestD = -1;

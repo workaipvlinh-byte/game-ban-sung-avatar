@@ -158,8 +158,8 @@ function SplatView({ s, fresh, faded }: { s: Splat; fresh: boolean; faded: boole
       {/* Sticker tên, người có quà có thêm sticker THANK YOU bắn dính bên cạnh */}
       <div className="absolute left-1/2 top-[76%] flex -translate-x-1/2 items-center gap-2 whitespace-nowrap">
         <div
-          className="max-w-[300px] -rotate-3 truncate rounded-lg bg-black px-4 py-1 font-extrabold text-white"
-          style={{ fontSize: Math.max(30, font * 0.9) }}
+          className="-rotate-3 truncate rounded-lg bg-black px-4 py-1 font-extrabold text-white"
+          style={{ fontSize: Math.max(30, font * 0.9), maxWidth: Math.max(300, size * 0.75) }}
         >
           {s.name}
         </div>
