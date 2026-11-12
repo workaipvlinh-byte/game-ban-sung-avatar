@@ -138,7 +138,7 @@ function SplatView({ s, fresh, faded }: { s: Splat; fresh: boolean; faded: boole
   return (
     <motion.div
       className="absolute"
-      style={{ left: s.x - size / 2, top: s.y - size / 2, width: size, height: size }}
+      style={{ left: s.x - size / 2, top: s.y - size / 2, width: size, height: size, zIndex: s.coins > 0 ? 2 : 1 }}
       initial={fresh ? { scale: 0, opacity: 0 } : false}
       animate={{ scale: 1, opacity: faded ? 0.35 : 1 }}
       transition={fresh ? { delay: 0.22, type: 'spring', stiffness: 420, damping: 14 } : { duration: 0.6 }}
