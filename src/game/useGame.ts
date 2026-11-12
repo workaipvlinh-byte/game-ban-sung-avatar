@@ -9,6 +9,7 @@ import { IS_STAGE } from '../live/page';
 import { GAME } from './config';
 import { enqueue, ordered, takeNext, type Queue } from './queue';
 import { music, sfx } from './audio';
+import { toWall, toScreenX } from './walk';
 
 /** Cài đặt ở trang điều khiển (server nhớ trong settings.json, gửi lại khi trang mở) */
 export interface Prefs {
@@ -48,7 +49,8 @@ const NORMAL_SIZE = 330;
 export const isHeld = (s: Splat, now = Date.now()) => s.coins > 0 && now < s.until;
 
 // Vùng tường để bắn (khung 1080x1920): chừa thanh trên, cạnh phải cho TikTok, phần dưới là sàn + súng
-const WALL = { x0: 190, x1: 840, y0: 520, y1: 1100 };
+// Tường trôi sang trái nên bắn lệch về bên phải màn hình cho avatar ở lâu trên màn hình
+const WALL = { x0: 360, x1: 840, y0: 520, y1: 1100 };
 let splatId = 0;
 
 /** Chọn chỗ bắn: thử 10 điểm ngẫu nhiên, lấy điểm xa các vệt mới nhất nhất. */
@@ -57,10 +59,12 @@ function pickSpot(splats: Splat[], size: number) {
   // vệt to thì thu vùng bắn vào giữa cho khỏi tràn khung
   const pad = size > NORMAL_SIZE ? (size - NORMAL_SIZE) / 2 + 90 : 0; // +90: chừa chỗ sticker tên + THANK YOU
   const W = { x0: WALL.x0 + pad, x1: Math.max(WALL.x0 + pad, WALL.x1 - pad), y0: WALL.y0 + pad * 0.5, y1: Math.max(WALL.y0 + pad * 0.5, WALL.y1 - pad) };
-  let best = { x: 540, y: 800 };
+  const now = performance.now();
+  let best = toWall(540, 800, now);
   let bestD = -1;
   for (let i = 0; i < 10; i++) {
-    const p = { x: W.x0 + Math.random() * (W.x1 - W.x0), y: W.y0 + Math.random() * (W.y1 - W.y0) };
+    // chọn trên màn hình, đổi sang toạ độ trên tường (đang trôi) để so với các vệt cũ
+    const p = toWall(W.x0 + Math.random() * (W.x1 - W.x0), W.y0 + Math.random() * (W.y1 - W.y0), now);
     const d = Math.min(...recent.map((s) => Math.hypot(s.x - p.x, s.y - p.y)), 9999);
     if (d > bestD) [best, bestD] = [p, d];
   }
@@ -241,7 +245,9 @@ export function useGame() {
             until: Date.now() + (who.coins > 0 ? GAME.giftHoldMs(who.coins) : 0),
           };
           // Quá trần thì bỏ vệt cũ nhất, trừ vệt người có quà còn đang được giữ
-          const next = [...s, splat];
+          // Bỏ vệt đã trôi khỏi mép trái màn hình
+          const now = performance.now();
+          const next = [...s.filter((x) => toScreenX(x.x, now) > -x.size), splat];
           while (next.length > GAME.maxSplats) {
             const i = next.findIndex((x) => !isHeld(x));
             if (i < 0 || i === next.length - 1) break;

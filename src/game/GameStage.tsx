@@ -7,28 +7,18 @@ import { GAME } from "./config";
 const IMG = { wall: "/assets/anh/tuong.jpg", gun: "/assets/anh/sung.png" };
 const MUZZLE = { x: 542, y: 1010 }; // đầu nòng súng trong khung 1080x1920
 
-// Camera đi ngang qua lại (lặp): cả tường trôi trái phải, nhún nhẹ theo bước chân; súng nhún ngược lại.
-const WALK = { amp: 60, periodMs: 16000, stepMs: 950, bob: 5, zoom: 1.14 }; // zoom > 1 để mép tường không lộ khi trôi
-function walk(t: number) {
-  const x = WALK.amp * Math.sin((2 * Math.PI * t) / WALK.periodMs);
-  const step = Math.abs(Math.sin((Math.PI * t) / WALK.stepMs));
-  return { x, y: -WALK.bob * step, step };
-}
-/** Điểm trên màn hình -> điểm trên tường (tường đang trôi + phóng to) */
-const toWall = (sx: number, sy: number, t: number) => {
-  const w = walk(t);
-  return {
-    x: 540 + (sx - 540 - w.x) / WALK.zoom,
-    y: 960 + (sy - 960 - w.y) / WALK.zoom,
-  };
-};
+import { WALK, scrollAt, stepAt, toScreenX, toWall } from "./walk";
+
+const TILE = 1080; // 1 tấm tường; tấm kế lật gương cho khớp mép, 2 tấm = 1 chu kỳ
 
 export function GameStage({ game }: { game: GameState }) {
   const likePct = Math.min(100, (game.likeProgress / GAME.likesPerBoost) * 100);
   const last = game.splats[game.splats.length - 1];
-  const aim = last ? Math.max(-14, Math.min(14, (last.x - MUZZLE.x) / 30)) : 0;
+  const aim = last ? Math.max(-14, Math.min(14, (toScreenX(last.x, performance.now()) - MUZZLE.x) / 30)) : 0;
   const next = game.queue.slice(0, 4);
   const world = useRef<HTMLDivElement>(null);
+  const strip = useRef<HTMLDivElement>(null);
+  const layer = useRef<HTMLDivElement>(null);
   const gun = useRef<HTMLDivElement>(null);
   const [muzzle, setMuzzle] = useState(MUZZLE);
 
@@ -37,11 +27,12 @@ export function GameStage({ game }: { game: GameState }) {
     let raf = 0;
     const loop = () => {
       const t = performance.now();
-      const w = walk(t);
-      if (world.current)
-        world.current.style.transform = `translate(${w.x}px, ${w.y}px) scale(${WALK.zoom})`;
-      if (gun.current)
-        gun.current.style.transform = `translate(${-w.x * 0.15}px, ${w.step * 14}px) rotate(${(w.x / WALK.amp) * 1.2}deg)`;
+      const sc = scrollAt(t);
+      const step = stepAt(t);
+      if (world.current) world.current.style.transform = `translateY(${-WALK.bob * step}px) scale(${WALK.zoom})`;
+      if (strip.current) strip.current.style.transform = `translateX(${-(sc % (2 * TILE))}px)`;
+      if (layer.current) layer.current.style.transform = `translateX(${-sc}px)`;
+      if (gun.current) gun.current.style.transform = `translateY(${step * 14}px) rotate(${(step - 0.5) * 1.6}deg)`;
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -58,11 +49,16 @@ export function GameStage({ game }: { game: GameState }) {
       className={`relative h-full w-full overflow-hidden ${game.boosting ? "stage-boost" : ""}`}
     >
       <div ref={world} className="absolute inset-0 will-change-transform">
-        <Picture
-          src={IMG.wall}
-          className="absolute inset-0 h-full w-full object-cover"
-          fallback={<WallFallback />}
-        />
+        {/* 3 tấm tường nối nhau (giữa lật gương), trôi trái rồi quay vòng 2 tấm */}
+        <div ref={strip} className="absolute inset-y-0 left-0 w-[3240px] will-change-transform">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="absolute inset-y-0 w-[1080px]" style={{ left: i * TILE, transform: i === 1 ? "scaleX(-1)" : undefined }}>
+              <Picture src={IMG.wall} className="absolute inset-0 h-full w-full object-cover" fallback={<WallFallback />} />
+            </div>
+          ))}
+        </div>
+
+        <div ref={layer} className="absolute inset-0 will-change-transform">
 
         {/* Vệt sơn trên tường */}
         {game.splats.map((s, i) => (
@@ -100,6 +96,7 @@ export function GameStage({ game }: { game: GameState }) {
             />
           )}
         </AnimatePresence>
+        </div>
 
         {/* Chưa ai trong hàng, tường trống */}
         {game.queue.length === 0 && game.splats.length === 0 && (
