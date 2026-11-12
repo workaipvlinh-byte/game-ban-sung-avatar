@@ -15,8 +15,6 @@ const ease = (p: number) => (p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2);
 export function GameStage({ game }: { game: GameState }) {
   const likePct = Math.min(100, (game.likeProgress / GAME.likesPerBoost) * 100);
   const last = game.splats[game.splats.length - 1];
-  const lastScreenX = last ? 540 + (last.x - game.shots * TILE - 540) * WALK.zoom : MUZZLE.x;
-  const aim = Math.max(-14, Math.min(14, (lastScreenX - MUZZLE.x) / 30));
   const next = game.queue.slice(0, 4);
   const world = useRef<HTMLDivElement>(null);
   const strip = useRef<HTMLDivElement>(null);
@@ -43,7 +41,8 @@ export function GameStage({ game }: { game: GameState }) {
       if (world.current) world.current.style.transform = `translateY(${-WALK.bob * step}px) scale(${WALK.zoom})`;
       if (strip.current) strip.current.style.transform = `translateX(${-(sc % (2 * TILE))}px)`;
       if (layer.current) layer.current.style.transform = `translateX(${-sc}px)`;
-      if (gun.current) gun.current.style.transform = `translateY(${step * 14}px) rotate(${(step - 0.5) * 1.6}deg)`;
+      // súng nhún rất nhẹ theo bước chân
+      if (gun.current) gun.current.style.transform = `translateY(${step * 5}px) rotate(${step * 0.5}deg)`;
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -116,14 +115,14 @@ export function GameStage({ game }: { game: GameState }) {
         )}
       </div>
 
-      {/* Súng */}
+      {/* Súng: nhún nhẹ khi bước, giật nhẹ khi bắn */}
       <div ref={gun} className="absolute inset-0 will-change-transform">
         <motion.div
           key={game.shots}
           className="absolute bottom-0 left-0 h-[944px] w-[600px] origin-bottom-left"
           initial={false}
-          animate={{ y: [0, 40, 0], rotate: [aim, aim - 3, aim] }}
-          transition={{ duration: 0.25, times: [0, 0.2, 1], delay: GO }}
+          animate={{ y: [0, 14, 0], rotate: [0, -1, 0] }}
+          transition={{ duration: 0.22, times: [0, 0.25, 1], delay: GO }}
         >
           <Picture
             src={IMG.gun}
