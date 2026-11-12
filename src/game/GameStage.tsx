@@ -37,7 +37,7 @@ export function GameStage({ game }: { game: GameState }) {
       const c = cam.current;
       const p = Math.min(1, (t - c.start) / WALK.moveMs);
       const sc = (c.now = c.from + (c.to - c.from) * ease(p));
-      const step = p < 1 ? Math.abs(Math.sin(p * Math.PI * 2)) : 0; // 2 bước chân mỗi lần lướt
+      const step = p < 1 ? Math.abs(Math.sin((Math.PI * (t - c.start)) / WALK.stepMs)) * Math.sin(Math.PI * p) : 0; // bước đều, êm lúc bắt đầu/dừng
       if (world.current) world.current.style.transform = `translateY(${-WALK.bob * step}px) scale(${WALK.zoom})`;
       if (strip.current) strip.current.style.transform = `translateX(${-(sc % (2 * TILE))}px)`;
       if (layer.current) layer.current.style.transform = `translateX(${-sc}px)`;
@@ -75,6 +75,26 @@ export function GameStage({ game }: { game: GameState }) {
           />
         ))}
 
+        {/* Vệt sơn bay theo viên đạn */}
+        <AnimatePresence>
+          {last && (
+            <motion.div
+              key={`trail${last.id}`}
+              className="absolute left-0 top-0 h-6 origin-left rounded-full"
+              style={{
+                width: Math.hypot(last.x - muzzle.x, last.y - muzzle.y),
+                rotate: `${(Math.atan2(last.y - muzzle.y, last.x - muzzle.x) * 180) / Math.PI}deg`,
+                x: muzzle.x,
+                y: muzzle.y - 12,
+                background: `linear-gradient(90deg, transparent, ${last.color})`,
+              }}
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: [0, 1, 1], opacity: [0.9, 0.7, 0] }}
+              transition={{ duration: 0.4, times: [0, 0.6, 1], delay: GO }}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Viên sơn bay từ nòng tới tường */}
         <AnimatePresence>
           {last && (
@@ -101,6 +121,9 @@ export function GameStage({ game }: { game: GameState }) {
             />
           )}
         </AnimatePresence>
+        {/* Đầu nòng phụt sơn: chớp sáng + giọt sơn văng + khói hơi */}
+        {last && <MuzzleBurst key={`m${last.id}`} x={muzzle.x} y={muzzle.y} color={last.color} toward={Math.atan2(last.y - muzzle.y, last.x - muzzle.x)} />}
+
         </div>
 
         {/* Chưa ai trong hàng, tường trống */}
@@ -210,6 +233,45 @@ const SPLAT_PATHS = [
   "M98 12c10 4 6 26 20 30s24-20 38-10-2 30 10 40 34-2 32 18-28 8-28 24 22 28 6 38-24-10-36 0 0 32-20 34-14-26-30-26-30 20-40 6 14-26 2-36-36 2-34-18 28-12 26-28-24-22-10-34 28 8 38-2 10-38 24-36z",
   "M104 22c18-2 16 20 30 24s30-10 34 6-16 22-8 34 32 10 26 28-30 4-34 18 18 32 0 38-22-14-36-6-10 30-28 26-6-28-20-32-30 14-38-2 16-22 6-34-34-8-28-26 30-6 30-22-24-26-8-36 26 12 38 2 6-34 24-36z",
 ];
+
+/** Hiệu ứng đầu nòng lúc bắn (sau khi camera tới nơi) */
+function MuzzleBurst({ x, y, color, toward }: { x: number; y: number; color: string; toward: number }) {
+  const drops = [-0.5, -0.3, -0.12, 0, 0.15, 0.32, 0.5, 0.2];
+  return (
+    <div className="pointer-events-none absolute left-0 top-0" style={{ transform: `translate(${x}px, ${y}px)` }}>
+      {/* chớp sáng */}
+      <motion.div
+        className="absolute -left-20 -top-20 h-40 w-40 rounded-full"
+        style={{ background: `radial-gradient(circle, #fff 0%, ${color} 35%, transparent 70%)` }}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: [0.3, 1.5, 1.8], opacity: [1, 0.8, 0] }}
+        transition={{ duration: 0.28, delay: GO }}
+      />
+      {/* khói hơi nén */}
+      <motion.div
+        className="absolute -left-24 -top-24 h-48 w-48 rounded-full bg-white/50 blur-xl"
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: [0.4, 1.6], opacity: [0.6, 0], x: [0, Math.cos(toward) * 60], y: [0, Math.sin(toward) * 60 - 30] }}
+        transition={{ duration: 0.7, delay: GO + 0.03, ease: "easeOut" }}
+      />
+      {/* giọt sơn văng hình nón theo hướng bắn */}
+      {drops.map((a, i) => {
+        const ang = toward + a;
+        const dist = 90 + (i % 3) * 45;
+        return (
+          <motion.div
+            key={i}
+            className="absolute -left-2.5 -top-2.5 h-5 w-5 rounded-full"
+            style={{ background: color }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ x: [0, Math.cos(ang) * dist], y: [0, Math.sin(ang) * dist + 40], scale: [1.2, 0.4], opacity: [1, 0] }}
+            transition={{ duration: 0.45, delay: GO, ease: "easeOut" }}
+          />
+        );
+      })}
+    </div>
+  );
+}
 
 function SplatView({
   s,

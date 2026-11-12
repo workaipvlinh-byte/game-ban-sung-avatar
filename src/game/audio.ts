@@ -208,15 +208,20 @@ function hiss(ctx: AudioContext, at: number, dur: number, vol: number, type: Biq
 const SYNTH: Record<SfxName, (ctx: AudioContext, v: number) => void> = {
   // súng sơn: "pụp" hơi nén + xì
   ban: (c, v) => {
+    // súng sơn: "tách" cò + "phụp" hơi nén bật bi sơn + "xì" xả hơi
     const t = c.currentTime;
-    tone(c, 'square', 420, 90, t, 0.12, 0.25 * v);
-    hiss(c, t, 0.14, 0.5 * v, 'bandpass', 1800);
+    hiss(c, t, 0.02, 0.6 * v, 'highpass', 4000); // tách
+    tone(c, 'sine', 210, 70, t + 0.005, 0.09, 0.7 * v); // phụp (thân)
+    hiss(c, t + 0.005, 0.07, 0.9 * v, 'bandpass', 900); // phụp (hơi)
+    hiss(c, t + 0.04, 0.32, 0.22 * v, 'highpass', 2500); // xì
   },
   // sơn văng lên tường: "bẹp" ướt
   splat: (c, v) => {
     const t = c.currentTime;
-    hiss(c, t, 0.25, 0.8 * v, 'lowpass', 900);
-    tone(c, 'sine', 160, 50, t, 0.18, 0.5 * v);
+    // bi sơn vỡ trên tường: "bộp" + nước văng
+    tone(c, 'sine', 140, 45, t, 0.12, 0.6 * v);
+    hiss(c, t, 0.06, 0.8 * v, 'bandpass', 1400);
+    hiss(c, t + 0.03, 0.22, 0.35 * v, 'lowpass', 2200);
   },
   // quà tới: 3 nốt đi lên
   qua: (c, v) => {

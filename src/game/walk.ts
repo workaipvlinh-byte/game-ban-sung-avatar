@@ -3,8 +3,9 @@
 // Vệt sơn nằm theo toạ độ "trên tường": tường thứ i nằm ở x = i * TILE.
 export const TILE = 1080;
 export const WALK = {
-  moveMs: 700, // thời gian lướt sang tường kế
+  moveMs: 2500, // thời gian lướt sang tường kế
   bob: 10, // độ nhún khi bước (px)
+  stepMs: 620, // 1 bước chân
   zoom: 1.1, // > 1 để mép trên/dưới không lộ khi nhún
 };
 

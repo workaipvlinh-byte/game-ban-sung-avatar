@@ -11,8 +11,9 @@ export const GAME = {
   subtitle: 'Comment một câu là vào hàng chờ',
 
   // ---------- Bắn ----------
-  shotEveryMs: 2500, // bình thường 2,5 giây bắn 1 người
-  fastShotEveryMs: 1300, // hàng chờ đông (quá crowdAt người) hoặc đang "mưa sơn" thì bắn nhanh
+  // 1 nhịp = lướt sang tường mới 2,5 giây (walk.ts) + đứng nhìn avatar
+  shotEveryMs: 4200, // bình thường: đứng nhìn 1,7 giây rồi đi tiếp
+  fastShotEveryMs: 3200, // hàng chờ đông (quá crowdAt người) hoặc đang "mưa sơn": đứng 0,7 giây
   crowdAt: 30,
   maxQueue: 500, // quá thì bỏ người không quà vào sau cùng
   maxSplats: 9, // số vệt sơn giữ trên tường, quá thì vệt cũ mờ đi

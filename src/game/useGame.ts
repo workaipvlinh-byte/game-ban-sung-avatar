@@ -246,7 +246,8 @@ export function useGame() {
         if (who.coins > 0) voice.say(pick(GAME.giftShotLines)!(spoken), true);
         else if (voice.waiting === 0 && spoken !== 'bạn') voice.say(pick(GAME.shotLines)!(spoken));
       },
-      (fast ? GAME.fastShotEveryMs : GAME.shotEveryMs) * SPEED[prefs.speed] + pauseMs.current,
+      // không ngắn hơn lúc lướt + 0,5 giây, kẻo chưa tới tường đã đi tiếp
+      Math.max(WALK.moveMs + 500, (fast ? GAME.fastShotEveryMs : GAME.shotEveryMs) * SPEED[prefs.speed]) + pauseMs.current,
     );
     return () => clearTimeout(t);
   }, [shots, queue.length > 0, boosting, queue.length > GAME.crowdAt, prefs.speed]);
