@@ -5,12 +5,13 @@ import { GAME } from "./config";
 
 // Ảnh chủ kênh làm, bỏ vào public/assets/anh/. Chưa có thì dùng hình vẽ tạm.
 const IMG = { wall: "/assets/anh/tuong.jpg", gun: "/assets/anh/sung.png" };
-const MUZZLE = { x: 542, y: 1010 }; // đầu nòng súng trong khung 1080x1920
+const MUZZLE = { x: 568, y: 1013 }; // miệng nòng súng trong khung 1080x1920 (đo từ ảnh sung.png)
 
 import { TILE, WALK, toWall } from "./walk";
 
 const GUN_TOP = 1920 - 944; // mép trên khung súng
 const ball = (c: string) => `radial-gradient(circle at 35% 30%, #fff 0 12%, ${c} 40%, color-mix(in srgb, ${c} 60%, #000) 100%)`;
+const glow = (c: string) => `0 0 18px 6px ${c}, 0 0 40px 12px color-mix(in srgb, ${c} 50%, transparent)`;
 const GO = WALK.moveMs / 1000; // giây lướt sang tường mới, viên sơn bay sau khi tới nơi
 const ease = (p: number) => (p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2);
 
@@ -23,6 +24,14 @@ export function GameStage({ game }: { game: GameState }) {
   const layer = useRef<HTMLDivElement>(null);
   const gun = useRef<HTMLDivElement>(null);
   const muzzle = toWall(MUZZLE.x, MUZZLE.y, game.shots); // đầu nòng nhìn từ tường mới
+  // Viên sơn, vệt bay, chớp đầu nòng chỉ hiện khi camera đã tới tường mới (lúc lướt không hiện gì giữa màn hình)
+  const [firedId, setFiredId] = useState(-1);
+  useEffect(() => {
+    if (!last) return;
+    const t = setTimeout(() => setFiredId(last.id), WALK.moveMs);
+    return () => clearTimeout(t);
+  }, [last?.id]);
+  const fired = !!last && firedId === last.id;
   const cam = useRef({ from: 0, to: 0, start: 0, now: 0 });
 
   // Mỗi phát mới: lướt từ chỗ đang đứng sang tường mới
@@ -79,7 +88,7 @@ export function GameStage({ game }: { game: GameState }) {
 
         {/* Vệt sơn bay theo viên đạn */}
         <AnimatePresence>
-          {last && (
+          {fired && last && (
             <motion.div
               key={`trail${last.id}`}
               className="absolute left-0 top-0 h-6 origin-left rounded-full"
@@ -92,14 +101,14 @@ export function GameStage({ game }: { game: GameState }) {
               }}
               initial={{ scaleX: 0, opacity: 0 }}
               animate={{ scaleX: [0, 1, 1], opacity: [0.9, 0.7, 0] }}
-              transition={{ duration: 0.4, times: [0, 0.6, 1], delay: GO }}
+              transition={{ duration: 0.4, times: [0, 0.6, 1] }}
             />
           )}
         </AnimatePresence>
 
         {/* Viên sơn bay từ nòng tới tường */}
         <AnimatePresence>
-          {last && (
+          {fired && last && (
             <motion.div
               key={last.id}
               className="absolute left-0 top-0 h-16 w-16 rounded-full"
@@ -119,12 +128,12 @@ export function GameStage({ game }: { game: GameState }) {
                 scale: 0.6,
                 opacity: [1, 1, 0],
               }}
-              transition={{ duration: 0.25, ease: "easeIn", delay: GO }}
+              transition={{ duration: 0.25, ease: "easeIn" }}
             />
           )}
         </AnimatePresence>
         {/* Đầu nòng phụt sơn: chớp sáng + giọt sơn văng + khói hơi */}
-        {last && <MuzzleBurst key={`m${last.id}`} x={muzzle.x} y={muzzle.y} color={last.color} toward={Math.atan2(last.y - muzzle.y, last.x - muzzle.x)} />}
+        {fired && last && <MuzzleBurst key={`m${last.id}`} x={muzzle.x} y={muzzle.y} color={last.color} toward={Math.atan2(last.y - muzzle.y, last.x - muzzle.x)} />}
 
         </div>
 
@@ -154,12 +163,19 @@ export function GameStage({ game }: { game: GameState }) {
             className="h-full w-full object-contain object-left-bottom"
             fallback={<GunFallback />}
           />
+          {/* Quầng sáng nhấp nháy quanh viên sơn ở đầu nòng */}
+          <motion.div
+            className="pointer-events-none absolute h-40 w-40 rounded-full"
+            style={{ left: MUZZLE.x - 80, top: MUZZLE.y - GUN_TOP - 80, background: `radial-gradient(circle, ${game.ammoColor} 0%, transparent 65%)` }}
+            animate={{ scale: [0.8, 1.15, 0.8], opacity: [0.55, 0.95, 0.55] }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+          />
           {/* Viên sơn nạp sẵn ở đầu nòng: bắn đi (sau khi tới tường) rồi nạp viên mới ngay */}
           {last && (
             <motion.div
               key={`a${game.shots}`}
-              className="absolute h-14 w-14 rounded-full"
-              style={{ left: MUZZLE.x - 28, top: MUZZLE.y - GUN_TOP - 28, background: ball(last.color) }}
+              className="absolute h-12 w-12 rounded-full"
+              style={{ left: MUZZLE.x - 24, top: MUZZLE.y - GUN_TOP - 24, background: ball(last.color), boxShadow: glow(last.color) }}
               initial={false}
               animate={{ scale: [1, 1, 0] }}
               transition={{ duration: 0.05, delay: GO }}
@@ -167,8 +183,8 @@ export function GameStage({ game }: { game: GameState }) {
           )}
           <motion.div
             key={`b${game.shots}`}
-            className="absolute h-14 w-14 rounded-full"
-            style={{ left: MUZZLE.x - 28, top: MUZZLE.y - GUN_TOP - 28, background: ball(game.ammoColor) }}
+            className="absolute h-12 w-12 rounded-full"
+            style={{ left: MUZZLE.x - 24, top: MUZZLE.y - GUN_TOP - 24, background: ball(game.ammoColor), boxShadow: glow(game.ammoColor) }}
             initial={{ scale: last ? 0 : 1 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 600, damping: 15, delay: last ? GO + 0.15 : 0 }}
@@ -266,14 +282,14 @@ function MuzzleBurst({ x, y, color, toward }: { x: number; y: number; color: str
         style={{ background: `radial-gradient(circle, #fff 0%, ${color} 35%, transparent 70%)` }}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: [0.3, 1.5, 1.8], opacity: [1, 0.8, 0] }}
-        transition={{ duration: 0.28, delay: GO }}
+        transition={{ duration: 0.28 }}
       />
       {/* khói hơi nén */}
       <motion.div
         className="absolute -left-24 -top-24 h-48 w-48 rounded-full bg-white/50 blur-xl"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: [0.4, 1.6], opacity: [0.6, 0], x: [0, Math.cos(toward) * 60], y: [0, Math.sin(toward) * 60 - 30] }}
-        transition={{ duration: 0.7, delay: GO + 0.03, ease: "easeOut" }}
+        transition={{ duration: 0.7, delay: 0.03, ease: "easeOut" }}
       />
       {/* giọt sơn văng hình nón theo hướng bắn */}
       {drops.map((a, i) => {
@@ -286,7 +302,7 @@ function MuzzleBurst({ x, y, color, toward }: { x: number; y: number; color: str
             style={{ background: color }}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ x: [0, Math.cos(ang) * dist], y: [0, Math.sin(ang) * dist + 40], scale: [1.2, 0.4], opacity: [1, 0] }}
-            transition={{ duration: 0.45, delay: GO, ease: "easeOut" }}
+            transition={{ duration: 0.45, ease: "easeOut" }}
           />
         );
       })}
