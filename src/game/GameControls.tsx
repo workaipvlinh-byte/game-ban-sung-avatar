@@ -9,7 +9,7 @@ const someone = () => {
   const i = n++;
   return { nickname: NAMES[i % NAMES.length], username: `khach${i}`, avatar: `https://i.pravatar.cc/150?u=khach${i}` };
 };
-const chat = () => emitTest('chat', { ...someone(), comment: 'bắn em đi' });
+const chat = () => emitTest('chat', { ...someone(), comment: 'cho em lên tường với' });
 const gift = (diamondCount: number, giftName: string) => emitTest('gift', { ...someone(), giftName, giftId: 1, diamondCount, repeatCount: 1 });
 const many = (k: number, f: () => void) => {
   for (let i = 0; i < k; i++) setTimeout(f, i * 120);
@@ -21,7 +21,7 @@ export function GameControls({ prefs }: { prefs: Prefs }) {
   return (
     <section className="space-y-2 rounded-2xl bg-slate-900 p-3 ring-1 ring-slate-800">
       <Row label="Cài đặt">
-        <span className="text-xs text-slate-400">Tốc độ bắn</span>
+        <span className="text-xs text-slate-400">Tốc độ lên tường</span>
         {(['cham', 'vua', 'nhanh'] as const).map((s) => (
           <B key={s} on={prefs.speed === s} onClick={() => setPref({ speed: s })}>
             {{ cham: 'Chậm', vua: 'Vừa', nhanh: 'Nhanh' }[s]}
@@ -31,7 +31,7 @@ export function GameControls({ prefs }: { prefs: Prefs }) {
           {prefs.music === '1' ? '🎵 Nhạc nền: BẬT' : '🔇 Nhạc nền: TẮT'}
         </B>
         <Slider label="Nhạc" max={200} value={prefs.musicVol} onChange={(v) => setPref({ musicVol: v })} />
-        <Slider label="Tiếng súng" max={100} value={prefs.sfxVol} onChange={(v) => setPref({ sfxVol: v })} />
+        <Slider label="Tiếng hiệu ứng" max={100} value={prefs.sfxVol} onChange={(v) => setPref({ sfxVol: v })} />
       </Row>
       <Row label="Giọng MC">
         <B on={prefs.mc === 'Adam bựa'} onClick={() => setPref({ mc: 'Adam bựa' })}>
@@ -40,7 +40,7 @@ export function GameControls({ prefs }: { prefs: Prefs }) {
         <B on={!prefs.mc} onClick={() => setPref({ mc: '' })}>
           🎙 Giọng thường (Edge)
         </B>
-        <B onClick={() => void sendControl('speak', '[cười] Ai comment là lên tường hết nha! | Tặng quà thì được bắn trước, avatar to đùng luôn.')}>
+        <B onClick={() => void sendControl('speak', '[cười] Ai comment là lên tường hết nha! | Tặng quà thì được lên trước, avatar to đùng luôn.')}>
           ▶ Nghe thử trên stage
         </B>
         <span className="text-xs text-slate-500">Adam cần bật VieNeu-TTS (BAT-LIVE tự bật). Chưa bật thì tự đọc giọng thường.</span>

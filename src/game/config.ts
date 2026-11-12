@@ -7,7 +7,7 @@
 import type { WishTopic } from '../live/chatter';
 
 export const GAME = {
-  title: 'BẮN SƠN LÊN TƯỜNG',
+  title: 'AVATAR LÊN TƯỜNG',
   subtitle: 'Comment một câu là vào hàng chờ',
 
   // ---------- Bắn ----------
@@ -21,15 +21,15 @@ export const GAME = {
   // [cười] [hắng giọng] chỉ giọng Adam đọc ra cảm xúc, giọng Edge tự bỏ qua
   shotLines: [
     (n: string) => `Bạn ${n} lên tường nè!`,
-    (n: string) => `[cười] Bắn bạn ${n} cái bẹp!`,
-    (n: string) => `Tới bạn ${n}, đứng yên nha. Bắn!`,
-    (n: string) => `Bạn ${n} dính sơn rồi, hết đường chạy.`,
+    (n: string) => `[cười] Vẩy sơn cho bạn ${n} cái bẹp!`,
+    (n: string) => `Tới bạn ${n} rồi, cười lên nào!`,
+    (n: string) => `Bạn ${n} lên tường xinh quá trời.`,
     (n: string) => `Ê bạn ${n}, nhìn lên tường coi ai kìa.`,
   ],
   giftShotLines: [
-    (n: string) => `^Tới lượt bạn ${n}! | Bắn phát to nhất luôn!`,
+    (n: string) => `^Tới lượt bạn ${n}! | Vệt sơn to nhất cho bạn luôn!`,
     (n: string) => `[cười] Đại gia ${n} lên tường! | Thank you bạn nha!`,
-    (n: string) => `^Dọn đường cho bạn ${n}! | Bắn!`,
+    (n: string) => `^Cả nhà vỗ tay cho bạn ${n} nào!`,
   ],
   // Người mới vào hàng: thỉnh thoảng gọi tên cho họ biết đã được xếp (giọng đang rảnh mới đọc)
   queueLineEveryMs: 15_000,
@@ -134,8 +134,8 @@ export const GAME = {
   idleAfterMs: 90_000,
   idleLines: [
     'Ai mới vào cứ comment một câu là được xếp hàng lên tường nha.',
-    'Cả nhà thả tim cho đầy thanh máu, đầy là mưa sơn, bắn nhanh gấp đôi.',
+    'Cả nhà thả tim cho đầy thanh tim, đầy là có mưa sơn, lên tường nhanh gấp đôi.',
   ],
 
-  boostLine: '^Đầy tim rồi! | Mưa sơn, bắn nhanh gấp đôi luôn!',
+  boostLine: '^Đầy tim rồi! | Mưa sơn tới, lên tường nhanh gấp đôi luôn!',
 };

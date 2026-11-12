@@ -26,7 +26,7 @@ export default function App() {
       channelName={game.channelName}
       voiceWho={game.voiceWho}
       extra={<GameControls prefs={game.prefs} />}
-      autoLive={{ durationMs: 120_000, comment: () => 'bắn em lên tường đi' }}
+      autoLive={{ durationMs: 120_000, comment: () => 'cho em lên tường với' }}
       preview={
         <StageFrame maxHeight={720}>
           <GameStage game={game} />
