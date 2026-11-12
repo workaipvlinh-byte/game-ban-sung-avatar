@@ -4,7 +4,7 @@ import type { GiftEvent, LiveStatus } from '../live/types';
 import { voice, speakableName } from '../live/voice';
 import { containsBanned } from '../live/bannedWords';
 import { NameBatcher } from '../live/scoreboard';
-import { detectWish, GiftThanker, makePicker, OncePerPerson, RecentPeople, WishLimiter } from '../live/chatter';
+import { GiftThanker, makePicker, OncePerPerson, RecentPeople, WishLimiter } from '../live/chatter';
 import { IS_STAGE } from '../live/page';
 import { GAME } from './config';
 import { enqueue, ordered, takeNext, type Queue } from './queue';
@@ -93,7 +93,8 @@ export function useGame() {
   queueRef.current = queue;
   const pauseMs = useRef(0);
   const wallIdx = useRef(0); // đang đứng ở bức tường thứ mấy // thêm thời gian chờ sau phát bắn người có quà
-  const lastQueueLine = useRef(0);
+  const chatTimes = useRef<number[]>([]);
+  const lastBusyThanks = useRef(0);
 
   const [channelName, setChannelName] = useState(GAME.defaultChannelName);
   const kenh = useRef(channelName);
@@ -121,21 +122,18 @@ export function useGame() {
       const name = safeName(e.nickname, e.username);
       talk.recent.note(e.username, speakableName(name));
 
-      const topic = containsBanned(e.comment) ? null : detectWish(e.comment);
-      const reply = topic && pick(GAME.wishReplies[topic] ?? []);
-      if (reply && talk.wishes.allow(e.username)) voice.say(reply(speakableName(name)));
+      // Comment đông thì cảm ơn chung 1 câu (thưa), còn lại MC im cho đỡ ồn
+      const now = Date.now();
+      chatTimes.current = [...chatTimes.current.filter((t) => now - t < GAME.busyWindowMs), now];
+      if (chatTimes.current.length >= GAME.busyComments && now - lastBusyThanks.current > GAME.busyThanksEveryMs && voice.waiting === 0) {
+        lastBusyThanks.current = now;
+        voice.say(pick(GAME.busyThanks)!);
+      }
 
       // Comment bậy thì không cho lên tường lần này
       if (containsBanned(e.comment)) return;
       if (GAME.joinKeywords.length && !GAME.joinKeywords.some((k) => compact(e.comment).includes(k))) return;
-      const isNew = !queueRef.current.some((x) => x.username === e.username);
       setQueue((q) => enqueue(q, { ...e, nickname: name }, 0, GAME.maxQueue));
-      // Gọi tên người mới vào hàng, thưa thôi, chỉ khi MC đang rảnh
-      const spoken = speakableName(name);
-      if (isNew && spoken !== 'bạn' && voice.waiting === 0 && Date.now() - lastQueueLine.current > GAME.queueLineEveryMs) {
-        lastQueueLine.current = Date.now();
-        voice.say(GAME.queueLine(spoken, queueRef.current.length));
-      }
     },
 
     onGift: (e) => {
@@ -154,8 +152,8 @@ export function useGame() {
     },
 
     onMember: (e) => {
-      const spoken = speakableName(safeName(e.nickname, e.username));
-      if (spoken !== 'bạn') talk.greeter.add(e.username, spoken);
+      // Không chào từng người vào phòng (giảm tương tác)
+      void e;
     },
 
     onFollow: (e) => {
@@ -262,7 +260,8 @@ export function useGame() {
         });
         const spoken = speakableName(who.nickname);
         if (who.coins > 0) voice.say(pick(GAME.giftShotLines)!(spoken), true);
-        else if (voice.waiting === 0 && spoken !== 'bạn') voice.say(pick(GAME.shotLines)!(spoken));
+        // Mỗi phát đọc tên + "lên tường nè" (nói lúc bắt đầu lướt, giọng Adam cần ~1,5 giây tạo tiếng nên tới tường là vừa)
+        else if (voice.waiting < 2) voice.say(pick(GAME.shotLines)!(spoken));
       },
       // không ngắn hơn lúc lướt + 0,5 giây, kẻo chưa tới tường đã đi tiếp
       Math.max(WALK.moveMs + 500, (fast ? GAME.fastShotEveryMs : GAME.shotEveryMs) * SPEED[prefs.speed]) + pauseMs.current,

@@ -20,22 +20,29 @@ export const GAME = {
   splatColors: ['#7CFC3A', '#21D07A', '#2EE6D6', '#FF3FB4', '#FFB020', '#A66BFF'],
   // Câu MC lúc bắn (người thường chỉ đọc khi giọng đang rảnh, người có quà luôn đọc)
   // [cười] [hắng giọng] chỉ giọng Adam đọc ra cảm xúc, giọng Edge tự bỏ qua
+  // Mỗi phát: tên khách + "lên tường nè", đổi giọng cảm xúc cho đỡ đều
   shotLines: [
-    (n: string) => `Bạn ${n} lên tường nè!`,
-    (n: string) => `[cười] Vẩy sơn cho bạn ${n} cái bẹp!`,
-    (n: string) => `Tới bạn ${n} rồi, cười lên nào!`,
-    (n: string) => `Bạn ${n} lên tường xinh quá trời.`,
-    (n: string) => `Ê bạn ${n}, nhìn lên tường coi ai kìa.`,
+    (n: string) => `[cười] ${n} lên tường nè!`,
+    (n: string) => `^Ê! | ${n} lên tường nè!`,
+    (n: string) => `Ối giời ơi, ${n} lên tường nè!`,
+    (n: string) => `[cười] Ha ha, ${n} lên tường nè!`,
+    (n: string) => `^Bộp! | ${n} lên tường nè!`,
+    (n: string) => `Nào nào, ${n} lên tường nè!`,
+  ],
+  // Comment đông (từ busyComments câu trong busyWindowMs) thì cảm ơn chung, tối đa 1 lần / busyThanksEveryMs
+  busyComments: 15,
+  busyWindowMs: 30_000,
+  busyThanksEveryMs: 90_000,
+  busyThanks: [
+    '[cười] Cảm ơn cả nhà comment sôi nổi quá, ai cũng sẽ được lên tường nha!',
+    'Comment đông vui quá trời, cảm ơn cả nhà nha!',
+    '^Đông vui quá! | Cảm ơn mọi người đã comment nha!',
   ],
   giftShotLines: [
     (n: string) => `^Tới lượt bạn ${n}! | Vệt sơn to nhất cho bạn luôn!`,
     (n: string) => `[cười] Đại gia ${n} lên tường! | Thank you bạn nha!`,
     (n: string) => `^Cả nhà vỗ tay cho bạn ${n} nào!`,
   ],
-  // Người mới vào hàng: thỉnh thoảng gọi tên cho họ biết đã được xếp (giọng đang rảnh mới đọc)
-  queueLineEveryMs: 15_000,
-  queueLine: (n: string, pos: number) =>
-    pos <= 1 ? `Bạn ${n} vào hàng rồi, chuẩn bị lên tường nha.` : `Bạn ${n} vào hàng rồi, còn ${pos} người nữa là tới.`,
   // Quà: xu càng nhiều avatar càng to (px) và giữ trên tường càng lâu
   giftSize: (coins: number) => Math.min(700, 380 + 75 * Math.log10(Math.max(1, coins))),
   giftHoldMs: (coins: number) => Math.min(90_000, 20_000 + 15_000 * Math.log10(Math.max(1, coins))),
@@ -122,7 +129,7 @@ export const GAME = {
 
   // ---------- Nhắc chia sẻ live ----------
   // Mỗi 5 phút; có người vừa tương tác thì cảm ơn tối đa 3 tên trước.
-  shareReminderEveryMs: 5 * 60_000,
+  shareReminderEveryMs: 10 * 60_000, // giảm tương tác: 10 phút nhắc 1 lần
   shareWithNames: (names: string, kenh: string) =>
     `${kenh} cảm ơn ${names} đã ghé chơi. Mọi người nhớ bấm chia sẻ live cho bạn bè cùng vào nha.`,
   shareLines: [
