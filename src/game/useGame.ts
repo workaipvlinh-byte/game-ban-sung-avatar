@@ -9,7 +9,7 @@ import { IS_STAGE } from '../live/page';
 import { GAME } from './config';
 import { enqueue, ordered, takeNext, type Queue } from './queue';
 import { music, sfx } from './audio';
-import { toWall, toScreenX } from './walk';
+import { toWall, TILE, WALK } from './walk';
 
 /** Cài đặt ở trang điều khiển (server nhớ trong settings.json, gửi lại khi trang mở) */
 export interface Prefs {
@@ -49,26 +49,16 @@ const NORMAL_SIZE = 330;
 export const isHeld = (s: Splat, now = Date.now()) => s.coins > 0 && now < s.until;
 
 // Vùng tường để bắn (khung 1080x1920): chừa thanh trên, cạnh phải cho TikTok, phần dưới là sàn + súng
-// Tường trôi sang trái nên bắn lệch về bên phải màn hình cho avatar ở lâu trên màn hình
-const WALL = { x0: 360, x1: 840, y0: 520, y1: 1100 };
+const WALL = { x0: 190, x1: 840, y0: 520, y1: 1100 };
 let splatId = 0;
 
-/** Chọn chỗ bắn: thử 10 điểm ngẫu nhiên, lấy điểm xa các vệt mới nhất nhất. */
-function pickSpot(splats: Splat[], size: number) {
-  const recent = splats.slice(-5);
+/** Chọn chỗ bắn trên bức tường thứ `wall` (mỗi người 1 tường) */
+function pickSpot(size: number, wall: number) {
   // vệt to thì thu vùng bắn vào giữa cho khỏi tràn khung
   const pad = size > NORMAL_SIZE ? (size - NORMAL_SIZE) / 2 + 90 : 0; // +90: chừa chỗ sticker tên + THANK YOU
-  const W = { x0: WALL.x0 + pad, x1: Math.max(WALL.x0 + pad, WALL.x1 - pad), y0: WALL.y0 + pad * 0.5, y1: Math.max(WALL.y0 + pad * 0.5, WALL.y1 - pad) };
-  const now = performance.now();
-  let best = toWall(540, 800, now);
-  let bestD = -1;
-  for (let i = 0; i < 10; i++) {
-    // chọn trên màn hình, đổi sang toạ độ trên tường (đang trôi) để so với các vệt cũ
-    const p = toWall(W.x0 + Math.random() * (W.x1 - W.x0), W.y0 + Math.random() * (W.y1 - W.y0), now);
-    const d = Math.min(...recent.map((s) => Math.hypot(s.x - p.x, s.y - p.y)), 9999);
-    if (d > bestD) [best, bestD] = [p, d];
-  }
-  return best;
+  const x0 = WALL.x0 + pad, x1 = Math.max(x0, WALL.x1 - pad);
+  const y0 = WALL.y0 + pad * 0.5, y1 = Math.max(y0, WALL.y1 - pad);
+  return toWall(x0 + Math.random() * (x1 - x0), y0 + Math.random() * (y1 - y0), wall);
 }
 
 /**
@@ -88,7 +78,8 @@ export function useGame() {
   const likeBase = useRef<number | null>(null);
   const queueRef = useRef(queue);
   queueRef.current = queue;
-  const pauseMs = useRef(0); // thêm thời gian chờ sau phát bắn người có quà
+  const pauseMs = useRef(0);
+  const wallIdx = useRef(0); // đang đứng ở bức tường thứ mấy // thêm thời gian chờ sau phát bắn người có quà
   const lastQueueLine = useRef(0);
 
   const [channelName, setChannelName] = useState(GAME.defaultChannelName);
@@ -199,6 +190,7 @@ export function useGame() {
         setQueue([]);
         setSplats([]);
         setShots(0);
+        wallIdx.current = 0;
       }
       if (!IS_STAGE) return;
       if (c.action === 'speak' && c.text) voice.say(c.text, true);
@@ -224,14 +216,17 @@ export function useGame() {
         const [who, rest] = takeNext(queueRef.current);
         if (!who) return;
         setQueue(rest);
-        setShots((n) => n + 1);
-        sfx.play('ban');
-        setTimeout(() => sfx.play('splat'), 230);
-        if (who.coins > 0) setTimeout(() => sfx.play('splat'), 780); // sticker THANK YOU dính lên
+        const wall = ++wallIdx.current;
+        setShots(wall);
+        // camera lướt sang tường mới trước, tới nơi mới bắn
+        const go = WALK.moveMs;
+        setTimeout(() => sfx.play('ban'), go);
+        setTimeout(() => sfx.play('splat'), go + 230);
+        if (who.coins > 0) setTimeout(() => sfx.play('splat'), go + 780); // sticker THANK YOU dính lên
         const size = who.coins > 0 ? GAME.giftSize(who.coins) : NORMAL_SIZE;
         pauseMs.current = who.coins > 0 ? GAME.giftPauseMs(who.coins) : 0;
         setSplats((s) => {
-          const spot = pickSpot(s, size);
+          const spot = pickSpot(size, wall);
           const splat: Splat = {
             id: ++splatId,
             ...spot,
@@ -244,16 +239,8 @@ export function useGame() {
             size,
             until: Date.now() + (who.coins > 0 ? GAME.giftHoldMs(who.coins) : 0),
           };
-          // Quá trần thì bỏ vệt cũ nhất, trừ vệt người có quà còn đang được giữ
-          // Bỏ vệt đã trôi khỏi mép trái màn hình
-          const now = performance.now();
-          const next = [...s.filter((x) => toScreenX(x.x, now) > -x.size), splat];
-          while (next.length > GAME.maxSplats) {
-            const i = next.findIndex((x) => !isHeld(x));
-            if (i < 0 || i === next.length - 1) break;
-            next.splice(i, 1);
-          }
-          return next;
+          // chỉ giữ vệt ở tường trước (còn thấy lúc đang lướt) và tường mới
+          return [...s.filter((x) => x.x > (wall - 1) * TILE - x.size), splat];
         });
         const spoken = speakableName(who.nickname);
         if (who.coins > 0) voice.say(pick(GAME.giftShotLines)!(spoken), true);

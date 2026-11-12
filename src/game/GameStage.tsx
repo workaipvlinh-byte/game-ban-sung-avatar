@@ -7,28 +7,39 @@ import { GAME } from "./config";
 const IMG = { wall: "/assets/anh/tuong.jpg", gun: "/assets/anh/sung.png" };
 const MUZZLE = { x: 542, y: 1010 }; // đầu nòng súng trong khung 1080x1920
 
-import { WALK, scrollAt, stepAt, toScreenX, toWall } from "./walk";
+import { TILE, WALK, toWall } from "./walk";
 
-const TILE = 1080; // 1 tấm tường; tấm kế lật gương cho khớp mép, 2 tấm = 1 chu kỳ
+const GO = WALK.moveMs / 1000; // giây lướt sang tường mới, viên sơn bay sau khi tới nơi
+const ease = (p: number) => (p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2);
 
 export function GameStage({ game }: { game: GameState }) {
   const likePct = Math.min(100, (game.likeProgress / GAME.likesPerBoost) * 100);
   const last = game.splats[game.splats.length - 1];
-  const aim = last ? Math.max(-14, Math.min(14, (toScreenX(last.x, performance.now()) - MUZZLE.x) / 30)) : 0;
+  const lastScreenX = last ? 540 + (last.x - game.shots * TILE - 540) * WALK.zoom : MUZZLE.x;
+  const aim = Math.max(-14, Math.min(14, (lastScreenX - MUZZLE.x) / 30));
   const next = game.queue.slice(0, 4);
   const world = useRef<HTMLDivElement>(null);
   const strip = useRef<HTMLDivElement>(null);
   const layer = useRef<HTMLDivElement>(null);
   const gun = useRef<HTMLDivElement>(null);
-  const [muzzle, setMuzzle] = useState(MUZZLE);
+  const muzzle = toWall(MUZZLE.x, MUZZLE.y, game.shots); // đầu nòng nhìn từ tường mới
+  const cam = useRef({ from: 0, to: 0, start: 0, now: 0 });
+
+  // Mỗi phát mới: lướt từ chỗ đang đứng sang tường mới
+  useEffect(() => {
+    const c = cam.current;
+    cam.current = { from: c.now, to: game.shots * TILE, start: performance.now(), now: c.now };
+  }, [game.shots]);
 
   // 1 vòng rAF đổi transform trực tiếp, không render lại React
   useEffect(() => {
     let raf = 0;
     const loop = () => {
       const t = performance.now();
-      const sc = scrollAt(t);
-      const step = stepAt(t);
+      const c = cam.current;
+      const p = Math.min(1, (t - c.start) / WALK.moveMs);
+      const sc = (c.now = c.from + (c.to - c.from) * ease(p));
+      const step = p < 1 ? Math.abs(Math.sin(p * Math.PI * 2)) : 0; // 2 bước chân mỗi lần lướt
       if (world.current) world.current.style.transform = `translateY(${-WALK.bob * step}px) scale(${WALK.zoom})`;
       if (strip.current) strip.current.style.transform = `translateX(${-(sc % (2 * TILE))}px)`;
       if (layer.current) layer.current.style.transform = `translateX(${-sc}px)`;
@@ -38,11 +49,6 @@ export function GameStage({ game }: { game: GameState }) {
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, []);
-  // Mỗi phát mới: tính đầu nòng đang ở đâu trên tường để viên sơn bay đúng chỗ
-  useEffect(
-    () => setMuzzle(toWall(MUZZLE.x, MUZZLE.y, performance.now())),
-    [last?.id],
-  );
 
   return (
     <div
@@ -84,7 +90,7 @@ export function GameStage({ game }: { game: GameState }) {
                 x: muzzle.x - 32,
                 y: muzzle.y - 32,
                 scale: 1.4,
-                opacity: 1,
+                opacity: 0,
               }}
               animate={{
                 x: last.x - 32,
@@ -92,7 +98,7 @@ export function GameStage({ game }: { game: GameState }) {
                 scale: 0.6,
                 opacity: [1, 1, 0],
               }}
-              transition={{ duration: 0.25, ease: "easeIn" }}
+              transition={{ duration: 0.25, ease: "easeIn", delay: GO }}
             />
           )}
         </AnimatePresence>
@@ -115,9 +121,9 @@ export function GameStage({ game }: { game: GameState }) {
         <motion.div
           key={game.shots}
           className="absolute bottom-0 left-0 h-[944px] w-[600px] origin-bottom-left"
-          initial={{ y: 40, rotate: aim - 3 }}
-          animate={{ y: 0, rotate: aim }}
-          transition={{ type: "spring", stiffness: 500, damping: 18 }}
+          initial={false}
+          animate={{ y: [0, 40, 0], rotate: [aim, aim - 3, aim] }}
+          transition={{ duration: 0.25, times: [0, 0.2, 1], delay: GO }}
         >
           <Picture
             src={IMG.gun}
@@ -231,7 +237,7 @@ function SplatView({
       animate={{ scale: 1, opacity: faded ? 0.35 : 1 }}
       transition={
         fresh
-          ? { delay: 0.22, type: "spring", stiffness: 420, damping: 14 }
+          ? { delay: GO + 0.22, type: "spring", stiffness: 420, damping: 14 }
           : { duration: 0.6 }
       }
     >
@@ -268,7 +274,7 @@ function SplatView({
             initial={fresh ? { scale: 2.6, opacity: 0 } : false}
             animate={{ scale: 1, opacity: 1 }}
             transition={{
-              delay: fresh ? 0.75 : 0,
+              delay: fresh ? GO + 0.75 : 0,
               type: "spring",
               stiffness: 500,
               damping: 16,

@@ -1,20 +1,15 @@
-// Camera đi ngang 1 chiều, lặp mãi: tường trôi sang trái đều đều, nhún nhẹ theo bước chân.
-// Vệt sơn nằm theo toạ độ "trên tường" (x tăng mãi), màn hình = tường dịch trái `scrollAt(t)` px rồi phóng to `zoom`.
+// Camera đi ngang 1 chiều theo nhịp bắn: mỗi phát bắn là 1 bức tường mới.
+// Tới lượt người kế: lướt nhanh sang tường kế (moveMs), dừng lại, rồi viên sơn mới bay.
+// Vệt sơn nằm theo toạ độ "trên tường": tường thứ i nằm ở x = i * TILE.
+export const TILE = 1080;
 export const WALK = {
-  speed: 0.04, // px mỗi ms (40px/giây): 1 avatar đi hết bề ngang màn hình trong khoảng 27 giây
-  stepMs: 520, // nửa bước chân
-  bob: 6, // độ nhún (px)
+  moveMs: 700, // thời gian lướt sang tường kế
+  bob: 10, // độ nhún khi bước (px)
   zoom: 1.1, // > 1 để mép trên/dưới không lộ khi nhún
 };
 
-export const scrollAt = (t: number) => t * WALK.speed;
-export const stepAt = (t: number) => Math.abs(Math.sin((Math.PI * t) / WALK.stepMs)); // 0..1
-
-/** Điểm trên màn hình (khung 1080x1920) -> điểm trên tường lúc t */
-export const toWall = (sx: number, sy: number, t: number) => ({
-  x: 540 + (sx - 540) / WALK.zoom + scrollAt(t),
+/** Điểm trên màn hình (khung 1080x1920) -> điểm trên tường thứ `wall` (lúc camera đã dừng ở đó) */
+export const toWall = (sx: number, sy: number, wall: number) => ({
+  x: 540 + (sx - 540) / WALK.zoom + wall * TILE,
   y: 960 + (sy - 960) / WALK.zoom,
 });
-
-/** Điểm trên tường -> x trên màn hình lúc t */
-export const toScreenX = (wx: number, t: number) => 540 + (wx - scrollAt(t) - 540) * WALK.zoom;
